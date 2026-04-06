@@ -1,0 +1,106 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Step 1: File paths for both datasets
+guardian_file_path = "/content/guardian_articles1.xlsx"
+nytimes_file_path = "/content/nytimes_articles1.xlsx"
+
+# Step 2: Load datasets
+# Specify the engine for reading .xlsx files
+guardian_data = pd.read_excel(guardian_file_path, engine='openpyxl')
+nytimes_data = pd.read_excel(nytimes_file_path, engine='openpyxl')
+
+# Step 3: Preview raw data
+print("Guardian Data (RAW):")
+print(guardian_data.head())
+
+print("\nNYTimes Data (RAW):")
+print(nytimes_data.head())
+
+# Step 4: Check for missing values
+print("\nMissing values in Guardian Data:")
+print(guardian_data.isnull().sum())
+
+print("\nMissing values in NYTimes Data:")
+print(nytimes_data.isnull().sum())
+
+# Step 5: Clean data
+# Drop rows with missing values
+cleaned_guardian = guardian_data.dropna()
+cleaned_nytimes = nytimes_data.dropna()
+
+# Convert 'publishedDate' to datetime format (handle errors gracefully)
+cleaned_guardian['publishedDate'] = pd.to_datetime(cleaned_guardian['publishedDate'], errors='coerce')
+cleaned_nytimes['publishedDate'] = pd.to_datetime(cleaned_nytimes['publishedDate'], errors='coerce')
+
+# Drop rows where 'publishedDate' could not be converted
+cleaned_guardian = cleaned_guardian.dropna(subset=['publishedDate'])
+cleaned_nytimes = cleaned_nytimes.dropna(subset=['publishedDate'])
+
+# Extract year and month for analysis
+cleaned_guardian['Year'] = cleaned_guardian['publishedDate'].dt.year
+cleaned_guardian['Month'] = cleaned_guardian['publishedDate'].dt.month
+
+cleaned_nytimes['Year'] = cleaned_nytimes['publishedDate'].dt.year
+cleaned_nytimes['Month'] = cleaned_nytimes['publishedDate'].dt.month
+
+# Step 6: Data Visualization
+# Visualization 1: Articles by Year for both datasets
+plt.figure(figsize=(14, 7))
+sns.histplot(data=cleaned_guardian, x='Year', color='blue', kde=False, label='Guardian', bins=15)
+sns.histplot(data=cleaned_nytimes, x='Year', color='orange', kde=False, label='NYTimes', bins=15)
+plt.title("Number of Articles by Year (Guardian vs NYTimes)", fontsize=16)
+plt.xlabel("Year", fontsize=14)
+plt.ylabel("Number of Articles", fontsize=14)
+plt.legend(fontsize=12)
+plt.grid(axis='y', linestyle='--')
+plt.show()
+
+# Visualization 2: Top 10 sections/categories for each dataset
+plt.figure(figsize=(14, 7))
+guardian_section_counts = cleaned_guardian['sectionName'].value_counts().head(10)
+nytimes_section_counts = cleaned_nytimes['sectionName'].value_counts().head(10)
+
+plt.subplot(1, 2, 1)
+guardian_section_counts.plot(kind='bar', color='skyblue', title="Guardian: Top 10 Sections")
+plt.xlabel("Sections", fontsize=12)
+plt.ylabel("Number of Articles", fontsize=12)
+plt.xticks(rotation=45)
+
+plt.subplot(1, 2, 2)
+nytimes_section_counts.plot(kind='bar', color='salmon', title="NYTimes: Top 10 Sections")
+plt.xlabel("Sections", fontsize=12)
+plt.ylabel("Number of Articles", fontsize=12)
+plt.xticks(rotation=45)
+
+plt.tight_layout()
+plt.show()
+
+# Visualization 3: Monthly Trends of Articles for Guardian
+guardian_monthly_counts = cleaned_guardian.groupby(['Year', 'Month']).size().reset_index(name='Counts')
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=guardian_monthly_counts, x='Month', y='Counts', hue='Year', marker='o', palette='tab10')
+plt.title("Monthly Trends of Articles (Guardian)", fontsize=16)
+plt.xlabel("Month", fontsize=14)
+plt.ylabel("Number of Articles", fontsize=14)
+plt.legend(title="Year", fontsize=12)
+plt.grid(axis='y', linestyle='--')
+plt.show()
+
+# Visualization 4: Monthly Trends of Articles for NYTimes
+nytimes_monthly_counts = cleaned_nytimes.groupby(['Year', 'Month']).size().reset_index(name='Counts')
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=nytimes_monthly_counts, x='Month', y='Counts', hue='Year', marker='o', palette='tab10')
+plt.title("Monthly Trends of Articles (NYTimes)", fontsize=16)
+plt.xlabel("Month", fontsize=14)
+plt.ylabel("Number of Articles", fontsize=14)
+plt.legend(title="Year", fontsize=12)
+plt.grid(axis='y', linestyle='--')
+plt.show()
+
+# Step 7: Save cleaned data to CSV
+cleaned_guardian.to_csv("cleaned_guardian_articles.csv", index=False)
+cleaned_nytimes.to_csv("cleaned_nytimes_articles.csv", index=False)
+print("\nCleaned Guardian data saved as 'cleaned_guardian_articles.csv'.")
+print("Cleaned NYTimes data saved as 'cleaned_nytimes_articles.csv'.")
