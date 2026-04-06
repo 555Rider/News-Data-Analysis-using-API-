@@ -1,0 +1,45 @@
+import pandas as pd
+import requests
+API_KEY="b7a30649-5498-4572-8695-316e87752544"
+Full_url='https://content.guardianapis.com/environment'
+urllist=[]
+for i in range(1,12):
+    url=f"{Full_url}?from-date=2023-01-01&api-key={API_KEY}&type=article&page={i}"
+    urllist.append(url)
+print("Generated URLs:\n" + "\n".join(urllist))
+info=[]
+def fetch_json(url):
+    try:
+        response=requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching data from {url}: {e}")
+        return None
+for url in urllist:
+    data = fetch_json(url)
+    if data:
+        info.append(data)
+finallist=[]
+try:
+    for page_data in info:
+        for result in page_data['response']['results']:
+            value={
+                "webTitle":result['webTitle'],
+                "sectionName": result['sectionName'],
+                "publishedDate": result['webPublicationDate']}
+            finallist.append(value)
+except (IndexError, KeyError) as e:
+    print(f"Error processing data: {e}")
+print(finallist)
+articles_df=pd.DataFrame(finallist)
+print(articles_df.head())
+excel_file_name = "guardian_articles1.xlsx"
+try:
+    articles_df.to_excel(excel_file_name, index=False)
+    print(f"Data successfully saved to {excel_file_name}")
+except Exception as e:
+    print(f"Error saving to Excel: {e}")
+from IPython.display import HTML
+download_link = f'<a href="{excel_file_name}" download>Click here to download the Excel file</a>'
+HTML(download_link)
